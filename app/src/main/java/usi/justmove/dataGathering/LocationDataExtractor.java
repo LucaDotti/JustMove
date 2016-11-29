@@ -17,18 +17,13 @@ import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 
-import static android.R.attr.data;
-import static android.R.attr.id;
-import static android.R.attr.y;
 
 /**
- * Created by usi on 28/11/16.
+ * Created by Luca Dotti on 28/11/16.
  */
-
 public class LocationDataExtractor implements LocationListener {
     private LocationManager locationManager;
     private HandlerThread locationHandlerThread;

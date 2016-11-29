@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created by usi on 27/11/16.
+ * Created by Luca Dotti on 27/11/16.
  */
 
 public abstract class AbstractDbController implements DbController {

@@ -1,11 +1,9 @@
 package usi.justmove.database;
 
-import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
 
 import java.util.HashMap;
 import java.util.List;
@@ -14,7 +12,7 @@ import java.util.Map;
 
 
 /**
- * Created by usi on 29/11/16.
+ * Created by Luca Dotti on 29/11/16.
  */
 public class LocalDbController extends AbstractDbController {
     private SQLiteDatabase sqliteDb;

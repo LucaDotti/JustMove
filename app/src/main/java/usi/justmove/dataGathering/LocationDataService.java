@@ -12,6 +12,9 @@ import android.util.Log;
 
 import static android.hardware.SensorManager.SENSOR_DELAY_NORMAL;
 
+/**
+ * Created by Luca Dotti on 28/11/16.
+ */
 public class LocationDataService extends Service {
     private LocationDataExtractor dataExtractor;
 

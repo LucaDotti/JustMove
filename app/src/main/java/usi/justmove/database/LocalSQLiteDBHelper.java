@@ -8,7 +8,7 @@ import android.util.Log;
 import static android.R.attr.version;
 
 /**
- * Created by usi on 27/11/16.
+ * Created by Luca Dotti on 27/11/16.
  */
 
 public class LocalSQLiteDBHelper extends SQLiteOpenHelper {
