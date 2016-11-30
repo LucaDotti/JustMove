@@ -3,17 +3,25 @@ package usi.justmove;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
+
+
+import java.text.ParseException;
 import java.util.Calendar;
+
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.ShareCompat;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.DatePicker;
 import android.widget.TextView;
+import java.util.Date;
+import java.text.DateFormat;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -23,7 +31,15 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+
 import com.google.android.gms.vision.barcode.Barcode;
+
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+
+import usi.justmove.database.LocalDbController;
+import usi.justmove.database.LocalSQLiteDBHelper;
 
 //http://stackoverflow.com/questions/19353255/how-to-put-google-maps-v2-on-a-fragment-using-viewpager
 
@@ -49,6 +65,7 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
     private GoogleMap googleMap;
     private TextView date;
     private MapFragment thisObj;
+    private LocalDbController dbController;
 
     private OnFragmentInteractionListener mListener;
 
@@ -82,6 +99,7 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
         thisObj = this;
+        dbController = new LocalDbController(getActivity(), getActivity().getResources().getString(R.string.db_name));
     }
 
     @Override
@@ -137,15 +155,39 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
                         c.get(Calendar.DAY_OF_MONTH)).show();
             }
         });
-        
+
         // Inflate the layout for this fragment
         return rootView;
     }
 
     @Override
     public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
+        month++;
         String dateString = Integer.toString(year) + "-" + Integer.toString(month) + "-" + Integer.toString(dayOfMonth);
         date.setText(dateString.toCharArray(), 0, dateString.length());
+        DateTimeFormatter dtfOut = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
+        DateTime dt = new DateTime(year, month, dayOfMonth, 0, 0, 0);
+        String dayStart = dtfOut.print(dt);
+        dt = new DateTime(year, month, dayOfMonth, 23, 59, 59);
+        String dayEnd = dtfOut.print(dt);
+        String query = buildQuery(dayStart, dayEnd);
+        Cursor c = dbController.rawQuery(query, null);
+        while(c.moveToNext()) {
+            DateTime t = new DateTime(c.getLong(1));
+            Log.d("AA", dtfOut.print(t));
+            Log.d("SQL", query);
+        }
+        Log.d("DATE START", dayStart);
+        Log.d("DATE END", dayEnd);
+        Log.d("QUERY", query);
+//
+
+    }
+
+    private String buildQuery(String dayStart, String dayEnd) {
+        return "SELECT * FROM " + LocalSQLiteDBHelper.TABLE_LOCATION +
+                " WHERE julianday(" + LocalSQLiteDBHelper.KEY_LOCATION_TIMESTAMP + ") >= julianday(\"" +  dayStart + "\") AND " +
+                "julianday(" + LocalSQLiteDBHelper.KEY_LOCATION_TIMESTAMP + ") <= julianday(\"" + dayEnd + "\")" ;
     }
 
 

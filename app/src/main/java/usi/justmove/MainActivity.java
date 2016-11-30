@@ -10,6 +10,8 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import net.danlew.android.joda.JodaTimeAndroid;
+
 import usi.justmove.dataGathering.LocationDataService;
 
 /**
@@ -26,6 +28,7 @@ public class MainActivity extends AppCompatActivity implements HomeFragment.OnFr
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        JodaTimeAndroid.init(this);
         toolbar = (android.support.v7.widget.Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         tab = (TabLayout) findViewById(R.id.tabLayout);
