@@ -16,9 +16,9 @@ import usi.justmove.dataGathering.LocationDataService;
  * Created by Luca Dotti on 22/11/16.
  */
 public class MainActivity extends AppCompatActivity implements HomeFragment.OnFragmentInteractionListener, MapFragment.OnFragmentInteractionListener, UsageFragment.OnFragmentInteractionListener {
-    android.support.v7.widget.Toolbar toolbar;
-    TabLayout tab;
-    ViewPager viewPager;
+    private android.support.v7.widget.Toolbar toolbar;
+    private TabLayout tab;
+    private ViewPager viewPager;
     private ViewPagerAdapter viewPagerAdapter;
     private final static int PERMISSION_ACCESS_LOCATION = 0;
 
@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity implements HomeFragment.OnFr
         viewPagerAdapter.addFragment(new UsageFragment(), "Usage");
         viewPager.setAdapter(viewPagerAdapter);
         tab.setupWithViewPager(viewPager);
+
         if(ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION ) != PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION ) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[] {android.Manifest.permission.ACCESS_COARSE_LOCATION, android.Manifest.permission.ACCESS_FINE_LOCATION},

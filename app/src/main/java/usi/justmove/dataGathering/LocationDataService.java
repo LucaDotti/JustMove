@@ -24,7 +24,7 @@ public class LocationDataService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        dataExtractor = new LocationDataExtractor(getApplicationContext(), 1000, 0);
+        dataExtractor = new LocationDataExtractor(getApplicationContext(), 5*60*1000, 0);
 
     }
 

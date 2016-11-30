@@ -3,4 +3,10 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+    <color name="GeneralBackground">#808080</color>
+    <color name="MapGeneralBackground">#CC666666</color>
+    <color name="DatePickerBackground">#666666</color>
+    <color name="MapDatePickerBackground">#CC4D4D4D</color>
+    <color name="white">#FFFFFF</color>
+
 </resources>
