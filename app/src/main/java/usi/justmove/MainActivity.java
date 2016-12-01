@@ -39,13 +39,12 @@ public class MainActivity extends AppCompatActivity implements HomeFragment.OnFr
         viewPagerAdapter.addFragment(new UsageFragment(), "Usage");
         viewPager.setAdapter(viewPagerAdapter);
         tab.setupWithViewPager(viewPager);
-
         if(ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION ) != PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION ) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[] {android.Manifest.permission.ACCESS_COARSE_LOCATION, android.Manifest.permission.ACCESS_FINE_LOCATION},
                     PERMISSION_ACCESS_LOCATION);
         }
-
+//        getApplication().deleteDatabase("JustMove");
         startService(new Intent(this, LocationDataService.class));
     }
 

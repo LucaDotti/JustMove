@@ -50,7 +50,7 @@ public class LocationDataExtractor implements LocationListener {
     @Override
     public void onLocationChanged(Location location) {
         HashMap<String, String> record = new HashMap<>();
-        record.put(LocalSQLiteDBHelper.KEY_LOCATION_TIMESTAMP, Long.toString(location.getTime()));
+        record.put(LocalSQLiteDBHelper.KEY_LOCATION_TIMESTAMP, Long.toString(System.currentTimeMillis()));
         record.put(LocalSQLiteDBHelper.KEY_LOCATION_ID, null);
         record.put(LocalSQLiteDBHelper.KEY_LOCATION_LATITUDE, Double.toString(location.getLatitude()));
         record.put(LocalSQLiteDBHelper.KEY_LOCATION_LONGITUDE, Double.toString(location.getLongitude()));

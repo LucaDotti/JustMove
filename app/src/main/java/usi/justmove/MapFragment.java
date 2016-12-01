@@ -6,9 +6,17 @@ import android.content.pm.PackageManager;
 
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Calendar;
 
 import android.database.Cursor;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Point;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
@@ -22,16 +30,20 @@ import android.widget.DatePicker;
 import android.widget.TextView;
 import java.util.Date;
 import java.text.DateFormat;
+import java.util.List;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.vision.barcode.Barcode;
 
 import org.joda.time.DateTime;
@@ -134,13 +146,16 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
                     return;
                 }
                 googleMap.setMyLocationEnabled(true);
-
+                LocationManager lm = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+                Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                double longitude = location.getLongitude();
+                double latitude = location.getLatitude();
                 // For dropping a marker at a point on the Map
-                LatLng sydney = new LatLng(-34, 151);
-                googleMap.addMarker(new MarkerOptions().position(sydney).title("Marker Title").snippet("Marker Description"));
+                LatLng current = new LatLng(latitude, longitude);
+                googleMap.addMarker(new MarkerOptions().position(current).title("Marker Title").snippet("Marker Description"));
 
                 // For zooming automatically to the location of the marker
-                CameraPosition cameraPosition = new CameraPosition.Builder().target(sydney).zoom(12).build();
+                CameraPosition cameraPosition = new CameraPosition.Builder().target(current).zoom(12).build();
                 googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
             }
         });
@@ -168,26 +183,34 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
         DateTimeFormatter dtfOut = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
         DateTime dt = new DateTime(year, month, dayOfMonth, 0, 0, 0);
         String dayStart = dtfOut.print(dt);
+        long dS = dt.getMillis();
         dt = new DateTime(year, month, dayOfMonth, 23, 59, 59);
         String dayEnd = dtfOut.print(dt);
-        String query = buildQuery(dayStart, dayEnd);
+        long dE = dt.getMillis();
+        String query = buildQuery(Long.toString(dS), Long.toString(dE));
+        List<LatLng> points = new ArrayList<>();
         Cursor c = dbController.rawQuery(query, null);
+        LatLng currPoint = null;
         while(c.moveToNext()) {
-            DateTime t = new DateTime(c.getLong(1));
-            Log.d("AA", dtfOut.print(t));
-            Log.d("SQL", query);
+            currPoint = new LatLng(c.getDouble(3), c.getDouble(4));
+            points.add(currPoint);
         }
-        Log.d("DATE START", dayStart);
-        Log.d("DATE END", dayEnd);
-        Log.d("QUERY", query);
-//
 
+        drawPath(points);
+    }
+
+    private void drawPath(List<LatLng> points) {
+        Polyline line = googleMap.addPolyline(new PolylineOptions()
+                .addAll(points)
+                .width(12)
+                .color(Color.parseColor("#05b1fb"))//Google maps blue color
+                .geodesic(true)
+        );
     }
 
     private String buildQuery(String dayStart, String dayEnd) {
         return "SELECT * FROM " + LocalSQLiteDBHelper.TABLE_LOCATION +
-                " WHERE julianday(" + LocalSQLiteDBHelper.KEY_LOCATION_TIMESTAMP + ") >= julianday(\"" +  dayStart + "\") AND " +
-                "julianday(" + LocalSQLiteDBHelper.KEY_LOCATION_TIMESTAMP + ") <= julianday(\"" + dayEnd + "\")" ;
+                " WHERE " + LocalSQLiteDBHelper.KEY_LOCATION_TIMESTAMP + " BETWEEN " + dayStart + " AND " + dayEnd;
     }
 
 
