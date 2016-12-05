@@ -10,7 +10,11 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import com.google.android.gms.maps.model.Polyline;
+
 import net.danlew.android.joda.JodaTimeAndroid;
+
+import java.util.List;
 
 import usi.justmove.dataGathering.LocationDataService;
 
@@ -23,6 +27,7 @@ public class MainActivity extends AppCompatActivity implements HomeFragment.OnFr
     private ViewPager viewPager;
     private ViewPagerAdapter viewPagerAdapter;
     private final static int PERMISSION_ACCESS_LOCATION = 0;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

@@ -30,7 +30,9 @@ import android.widget.DatePicker;
 import android.widget.TextView;
 import java.util.Date;
 import java.text.DateFormat;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -53,7 +55,12 @@ import org.joda.time.format.DateTimeFormatter;
 import usi.justmove.database.LocalDbController;
 import usi.justmove.database.LocalSQLiteDBHelper;
 
+import static junit.runner.Version.id;
+
 //http://stackoverflow.com/questions/19353255/how-to-put-google-maps-v2-on-a-fragment-using-viewpager
+//add possibility to set the current acivity by the user on each line
+//add merge of lines
+//add legenda
 
 /**
  * A simple {@link Fragment} subclass.
@@ -78,6 +85,7 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
     private TextView date;
     private MapFragment thisObj;
     private LocalDbController dbController;
+    private List<Polyline> lines;
 
     private OnFragmentInteractionListener mListener;
 
@@ -112,6 +120,7 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
         }
         thisObj = this;
         dbController = new LocalDbController(getActivity(), getActivity().getResources().getString(R.string.db_name));
+        lines = new ArrayList<>();
     }
 
     @Override
@@ -175,8 +184,16 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
         return rootView;
     }
 
+    private void clearMap() {
+        for(Polyline l: lines) {
+            l.remove();
+        }
+        lines.clear();
+    }
+
     @Override
     public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
+        clearMap();
         month++;
         String dateString = Integer.toString(year) + "-" + Integer.toString(month) + "-" + Integer.toString(dayOfMonth);
         date.setText(dateString.toCharArray(), 0, dateString.length());
@@ -190,22 +207,94 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
         String query = buildQuery(Long.toString(dS), Long.toString(dE));
         List<LatLng> points = new ArrayList<>();
         Cursor c = dbController.rawQuery(query, null);
-        LatLng currPoint = null;
-        while(c.moveToNext()) {
-            currPoint = new LatLng(c.getDouble(3), c.getDouble(4));
-            points.add(currPoint);
+        if(c.getCount() > 0) {
+            drawSpeedPath(c);
         }
 
-        drawPath(points);
+//        LatLng currPoint = null;
+//        while(c.moveToNext()) {
+//            currPoint = new LatLng(c.getDouble(3), c.getDouble(4));
+//            points.add(currPoint);
+//        }
+//
+//        drawPath(points);
     }
 
-    private void drawPath(List<LatLng> points) {
+    private void drawSpeedPath(Cursor c) {
+        List<LatLng> currPath = new ArrayList<>();
+        double currSpeed = 0;
+        double tempSpeed = 0;
+        LatLng currPoint;
+        c.moveToNext();
+        LatLng prevPoint = new LatLng(c.getDouble(3), c.getDouble(4));
+        currPath.add(prevPoint);
+        c.moveToNext();
+
+        currPoint = new LatLng(c.getDouble(3), c.getDouble(4));
+
+        currSpeed = computeSpeed(prevPoint, currPoint);
+
+        while(c.moveToNext()) {
+            prevPoint = currPoint;
+            currPoint = new LatLng(c.getDouble(3), c.getDouble(4));
+            tempSpeed = computeSpeed(prevPoint, currPoint);
+            System.out.println(currSpeed);
+            if(tempSpeed >= currSpeed-10 && tempSpeed <= currSpeed+10) {
+                currPath.add(currPoint);
+            } else {
+                drawPath(currPath, computeColor(currSpeed));
+                currPath.clear();
+                currPath.add(prevPoint);
+                currPath.add(currPoint);
+                currSpeed = tempSpeed;
+            }
+        }
+    }
+
+    private int computeColor(double speed) {
+        if(speed > 200) {
+            speed = 200;
+        }
+        int maxSpeed = 200;
+        int s = (int) speed;
+
+        int maxColor = 255;
+
+        int b = Math.abs((s*maxColor)/maxSpeed - maxColor);
+        int r = (s*maxColor)/maxSpeed;
+
+        return Color.parseColor(String.format("#%02x%02x%02x", r, 0, b));
+    }
+
+    /**
+     * Returns speed between two points in m/s
+     * @param start
+     * @param end
+     * @return
+     */
+    private double computeSpeed(LatLng start, LatLng end) {
+        Location l1 = new Location("");
+        l1.setLatitude(start.latitude);
+        l1.setLongitude(start.longitude);
+        Location l2 = new Location("");
+        l2.setLatitude(end.latitude);
+        l2.setLongitude(end.longitude);
+
+        double distance = l1.distanceTo(l2);
+
+        return (distance/1000)*3600;
+    }
+
+    private void drawPath(List<LatLng> points, int color) {
+        System.out.println("SIZE" + points.size());
         Polyline line = googleMap.addPolyline(new PolylineOptions()
                 .addAll(points)
                 .width(12)
-                .color(Color.parseColor("#05b1fb"))//Google maps blue color
+                .color(color)
                 .geodesic(true)
         );
+
+        lines.add(line);
     }
 
     private String buildQuery(String dayStart, String dayEnd) {
