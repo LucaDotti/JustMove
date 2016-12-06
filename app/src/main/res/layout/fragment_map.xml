@@ -2,7 +2,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="usi.justmove.MapFragment">
+    tools:context="usi.justmove.MapFragment"
+    android:paddingTop="100dp">
     <!--<FrameLayout-->
         <!--android:layout_width="match_parent"-->
         <!--android:layout_height="match_parent">-->
@@ -28,80 +29,67 @@
             android:layout_centerInParent="true"
         />
 
-
         <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:orientation="vertical"
             android:background="@color/MapGeneralBackground"
-            android:id="@+id/mapFragmentFilter"
-        >
-
-        <TextView
-            android:text="Day:"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large"
-            android:paddingRight="20px"
-            android:textColor="@color/white"/>
-
-        <TextView
-            android:text="2016-11-11"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/mapFragmentDate"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large"
-            android:textColor="@color/white"
-            android:background="@drawable/border"
-            android:padding="4dp"
-            android:layout_marginBottom="3dp"
-            android:layout_marginTop="3dp"/>
+            android:id="@+id/map_legenda">
 
         </LinearLayout>
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:background="@color/MapGeneralBackground"
+            android:id="@+id/mapFragmentFilter">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_alignParentLeft="true">
+                <TextView
+                    android:text="Day:"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                    android:paddingRight="20px"
+                    android:textColor="@color/white"/>
+
+                <TextView
+                    android:text="2016-11-11"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/mapFragmentDate"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                    android:textColor="@color/white"
+                    android:background="@drawable/border"
+                    android:padding="4dp"
+                    android:layout_marginBottom="3dp"
+                    android:layout_marginTop="3dp"/>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Remove errors"
+                    />
+                <CheckBox
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+
+        </RelativeLayout>
+
     </RelativeLayout>
 
-
-
-
-
-    <!--<RelativeLayout-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="match_parent">-->
-
-        <!--<LinearLayout-->
-            <!--android:orientation="horizontal"-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:gravity="center"-->
-            <!--android:background="@color/GeneralBackground"-->
-            <!--android:id="@+id/mapFragmentFilter"-->
-
-            <!--&gt;-->
-
-            <!--<TextView-->
-                <!--android:text="Day:"-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:id="@+id/textView3"-->
-                <!--android:textAppearance="@style/TextAppearance.AppCompat.Large"-->
-                <!--android:paddingRight="20px"-->
-                <!--android:textColor="@color/white"/>-->
-
-            <!--<TextView-->
-                <!--android:text="2016-11-11"-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:id="@+id/textView2"-->
-                <!--android:textAppearance="@style/TextAppearance.AppCompat.Large"-->
-                <!--android:textColor="@color/white"-->
-                <!--android:background="@drawable/border"-->
-                <!--android:padding="4dp"-->
-                <!--android:layout_marginBottom="3dp"-->
-                <!--android:layout_marginTop="3dp"/>-->
-
-        <!--</LinearLayout>-->
-
-    <!--</RelativeLayout>-->
 </FrameLayout>

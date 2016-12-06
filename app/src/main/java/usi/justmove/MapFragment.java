@@ -10,11 +10,16 @@ import java.util.ArrayList;
 import java.util.Calendar;
 
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.ShapeDrawable;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.Uri;
@@ -22,11 +27,15 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.ShareCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.media.session.IMediaControllerCallback;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.DatePicker;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.util.Date;
 import java.text.DateFormat;
@@ -40,13 +49,17 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.Projection;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.vision.barcode.Barcode;
+import com.google.android.gms.vision.text.Line;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -55,13 +68,16 @@ import org.joda.time.format.DateTimeFormatter;
 import usi.justmove.database.LocalDbController;
 import usi.justmove.database.LocalSQLiteDBHelper;
 
+import static android.R.color.transparent;
 import static junit.runner.Version.id;
 
 //http://stackoverflow.com/questions/19353255/how-to-put-google-maps-v2-on-a-fragment-using-viewpager
 //add possibility to set the current acivity by the user on each line
 //add merge of lines
 //add legenda
-
+//USAGE: add also time app is running and so on..
+//Datagathering: remove GPS when not necessary...
+//Add sampling requency selection with slider
 /**
  * A simple {@link Fragment} subclass.
  * Activities that contain this fragment must implement the
@@ -85,7 +101,10 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
     private TextView date;
     private MapFragment thisObj;
     private LocalDbController dbController;
-    private List<Polyline> lines;
+    private Map<Polyline, Marker> lines;
+    private LinearLayout legenda;
+    private Marker currentVisibleMarker;
+    private Polyline currentPolyLine;
 
     private OnFragmentInteractionListener mListener;
 
@@ -120,13 +139,14 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
         }
         thisObj = this;
         dbController = new LocalDbController(getActivity(), getActivity().getResources().getString(R.string.db_name));
-        lines = new ArrayList<>();
+        lines = new HashMap<>();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_map, container, false);
+        legenda = (LinearLayout) rootView.findViewById(R.id.map_legenda);
         map = (MapView) rootView.findViewById(R.id.googleMap);
         map.onCreate(savedInstanceState);
 
@@ -166,8 +186,41 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
                 // For zooming automatically to the location of the marker
                 CameraPosition cameraPosition = new CameraPosition.Builder().target(current).zoom(12).build();
                 googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                googleMap.setOnPolylineClickListener(new GoogleMap.OnPolylineClickListener() {
+                    @Override
+                    public void onPolylineClick(Polyline polyline) {
+                        hideMarkers();
+                        Marker m = lines.get(polyline);
+                        if(currentPolyLine != null) {
+                            currentPolyLine.setWidth(12);
+                        }
+
+                        currentVisibleMarker = m;
+                        currentPolyLine = polyline;
+                        List<LatLng> points = polyline.getPoints();
+                        m.setPosition(points.get(points.size()/2));
+                        m.setVisible(true);
+                        m.showInfoWindow();
+                        polyline.setWidth(20);
+
+                    }
+                });
+
+                googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+                    @Override
+                    public void onMapClick(LatLng latLng) {
+                        if(currentVisibleMarker != null && currentPolyLine != null) {
+                            currentVisibleMarker.setVisible(false);
+                            currentPolyLine.setWidth(12);
+                        }
+                    }
+                });
             }
         });
+
+        setUpLegenda(legenda);
+
+
 
         date = (TextView) rootView.findViewById(R.id.mapFragmentDate);
 
@@ -184,12 +237,41 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
         return rootView;
     }
 
+    private void setUpLegenda(LinearLayout legenda) {
+        LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        for(int i = 0; i < 5; i++) {
+            LinearLayout item = (LinearLayout) inflater.inflate(R.layout.legenda_item, null);
+            ImageView image = (ImageView) item.findViewById(R.id.legendaItemColor);
+            Drawable d = ContextCompat.getDrawable(getActivity(), R.drawable.legenda_square);
+//            d.setColorFilter(computeColor(i*50), PorterDuff.Mode.SRC_IN);
+            d.setTint(computeColor(i*50));
+            TextView text = (TextView) item.findViewById(R.id.legendaItemText);
+            text.setText(i*50 + "km/h");
+            legenda.addView(item);
+        }
+
+
+    }
+
     private void clearMap() {
-        for(Polyline l: lines) {
-            l.remove();
+        for(Map.Entry<Polyline, Marker> entry : lines.entrySet()) {
+            Polyline line = entry.getKey();
+            Marker marker = entry.getValue();
+            line.remove();
+            marker.remove();
+
         }
         lines.clear();
     }
+
+    private void hideMarkers() {
+        for(Map.Entry<Polyline, Marker> entry : lines.entrySet()) {
+            Marker marker = entry.getValue();
+            marker.setVisible(false);
+
+        }
+    }
+
 
     @Override
     public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
@@ -238,11 +320,10 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
             prevPoint = currPoint;
             currPoint = new LatLng(c.getDouble(3), c.getDouble(4));
             tempSpeed = computeSpeed(prevPoint, currPoint);
-            System.out.println(currSpeed);
             if(tempSpeed >= currSpeed-10 && tempSpeed <= currSpeed+10) {
                 currPath.add(currPoint);
             } else {
-                drawPath(currPath, computeColor(currSpeed));
+                drawPath(currPath, computeColor(currSpeed), currSpeed);
                 currPath.clear();
                 currPath.add(prevPoint);
                 currPath.add(currPoint);
@@ -262,7 +343,6 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
 
         int b = Math.abs((s*maxColor)/maxSpeed - maxColor);
         int r = (s*maxColor)/maxSpeed;
-
         return Color.parseColor(String.format("#%02x%02x%02x", r, 0, b));
     }
 
@@ -285,16 +365,41 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
         return (distance/1000)*3600;
     }
 
-    private void drawPath(List<LatLng> points, int color) {
-        System.out.println("SIZE" + points.size());
+    private void drawPath(List<LatLng> points, int color, double speed) {
         Polyline line = googleMap.addPolyline(new PolylineOptions()
                 .addAll(points)
                 .width(12)
                 .color(color)
                 .geodesic(true)
+                .clickable(true)
         );
+//        BitmapDescriptor transparent = BitmapDescriptorFactory.fromResource(R.drawable.transparent_bitmap);
 
-        lines.add(line);
+        MarkerOptions markerOptions = new MarkerOptions()
+                .snippet(Integer.toString((int) speed) + " km/h")
+//                .anchor((float) 0.5, (float) 0.5)
+                .position(new LatLng(0,0))
+                .title(getActivity(speed));
+//                .icon(map);
+
+        Marker marker = googleMap.addMarker(markerOptions);
+        marker.setVisible(false);
+
+        lines.put(line, marker);
+    }
+
+    private String getActivity(double speed) {
+        if(speed <= 3) {
+            return "Stationary";
+        } else if (speed > 3 && speed <= 9) {
+            return "Walking";
+        } else if (speed > 9 && speed <= 30) {
+            return "Bicyling";
+        } else if (speed > 30 && speed <= 170) {
+            return "Driving";
+        } else {
+            return "Flying";
+        }
     }
 
     private String buildQuery(String dayStart, String dayEnd) {
