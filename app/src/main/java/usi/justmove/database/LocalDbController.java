@@ -37,6 +37,8 @@ public class LocalDbController extends AbstractDbController {
 
     }
 
+
+
     @Override
     public void insertRecords(String tableName, List<HashMap<String, String>> records) {
         ContentValues values;

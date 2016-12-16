@@ -2,12 +2,68 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="usi.justmove.UsageFragment">
+    tools:context="usi.justmove.UsageFragment"
+    android:paddingTop="105dp">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:orientation="vertical"
+        android:weightSum="1.0"
+        >
+        <!--<TextView-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:textSize="@dimen/cast_libraries_material_featurehighlight_text_header_size"-->
+            <!--android:textColor="@color/white"-->
+            <!--android:background="@color/GeneralBackground"-->
+            <!--android:text="Current resources usage"-->
+            <!--android:gravity="center"/>-->
 
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:layout_weight="0.5">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/cast_libraries_material_featurehighlight_text_header_size"
+                android:textColor="@color/white"
+                android:background="@color/GeneralBackground"
+                android:text="Wifi"
+                android:gravity="center"/>
+
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/usageWifiChart"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+            </com.github.mikephil.charting.charts.LineChart>
+
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:layout_weight="0.5">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/cast_libraries_material_featurehighlight_text_header_size"
+                android:textColor="@color/white"
+                android:background="@color/GeneralBackground"
+                android:text="Memory"
+                android:gravity="center"/>
+
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/usageMemoryChart"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+            </com.github.mikephil.charting.charts.LineChart>
+        </LinearLayout>
+    </LinearLayout>
 </FrameLayout>

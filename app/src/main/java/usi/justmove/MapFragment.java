@@ -7,8 +7,9 @@ import android.content.pm.PackageManager;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import android.text.format.Time;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
-
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -33,13 +34,19 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.DatePicker;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import java.util.Date;
 import java.text.DateFormat;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -65,11 +72,22 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import usi.justmove.dataAnalisys.DataAnalyzer;
+import usi.justmove.dataAnalisys.SpeedPath;
 import usi.justmove.database.LocalDbController;
 import usi.justmove.database.LocalSQLiteDBHelper;
+import usi.justmove.utils.MoveActivity;
 
+import static android.R.attr.actionBarItemBackground;
+import static android.R.attr.filter;
+import static android.R.attr.width;
+import static android.R.attr.y;
 import static android.R.color.transparent;
+import static android.graphics.Color.parseColor;
 import static junit.runner.Version.id;
+import static usi.justmove.utils.MoveActivity.BICYCLING;
+import static usi.justmove.utils.MoveActivity.DRIVING;
+import static usi.justmove.utils.MoveActivity.STATIONARY;
 
 //http://stackoverflow.com/questions/19353255/how-to-put-google-maps-v2-on-a-fragment-using-viewpager
 //add possibility to set the current acivity by the user on each line
@@ -78,6 +96,9 @@ import static junit.runner.Version.id;
 //USAGE: add also time app is running and so on..
 //Datagathering: remove GPS when not necessary...
 //Add sampling requency selection with slider
+//add speed color adaption
+//show only walking,...
+//weight on the time
 /**
  * A simple {@link Fragment} subclass.
  * Activities that contain this fragment must implement the
@@ -98,13 +119,21 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
 
     private MapView map;
     private GoogleMap googleMap;
-    private TextView date;
     private MapFragment thisObj;
+
+    private DataAnalyzer analyzer;
     private LocalDbController dbController;
+
+    private SpeedPath currentSpeedPath;
     private Map<Polyline, Marker> lines;
-    private LinearLayout legenda;
     private Marker currentVisibleMarker;
     private Polyline currentPolyLine;
+
+    private TextView date;
+    private DatePickerDialog datePicker;
+    private LinearLayout legenda;
+    private CheckBox removeErrorCheckbox;
+    private CheckBox activitiesCheckbox;
 
     private OnFragmentInteractionListener mListener;
 
@@ -140,6 +169,7 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
         thisObj = this;
         dbController = new LocalDbController(getActivity(), getActivity().getResources().getString(R.string.db_name));
         lines = new HashMap<>();
+        analyzer = new DataAnalyzer();
     }
 
     @Override
@@ -147,10 +177,13 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_map, container, false);
         legenda = (LinearLayout) rootView.findViewById(R.id.map_legenda);
+
         map = (MapView) rootView.findViewById(R.id.googleMap);
         map.onCreate(savedInstanceState);
-
         map.onResume();
+
+        removeErrorCheckbox = (CheckBox) rootView.findViewById(R.id.removeErrorCheckBox);
+        activitiesCheckbox = (CheckBox) rootView.findViewById(R.id.mapFragmentActivitiesCheckbox);
 
         try {
             MapsInitializer.initialize(getActivity().getApplicationContext());
@@ -179,9 +212,7 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
                 Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 double longitude = location.getLongitude();
                 double latitude = location.getLatitude();
-                // For dropping a marker at a point on the Map
                 LatLng current = new LatLng(latitude, longitude);
-                googleMap.addMarker(new MarkerOptions().position(current).title("Marker Title").snippet("Marker Description"));
 
                 // For zooming automatically to the location of the marker
                 CameraPosition cameraPosition = new CameraPosition.Builder().target(current).zoom(12).build();
@@ -218,18 +249,75 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
             }
         });
 
-        setUpLegenda(legenda);
-
 
 
         date = (TextView) rootView.findViewById(R.id.mapFragmentDate);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
+        String currentTDate = sdf.format(new Date());
+        date.setText(currentTDate);
         final Calendar c = Calendar.getInstance();
+        datePicker = new DatePickerDialog(getActivity(), thisObj, c.get(Calendar.YEAR), c.get(Calendar.MONTH),
+                c.get(Calendar.DAY_OF_MONTH));
         date.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new DatePickerDialog(getActivity(), thisObj, c.get(Calendar.YEAR), c.get(Calendar.MONTH),
-                        c.get(Calendar.DAY_OF_MONTH)).show();
+                datePicker.show();
+            }
+        });
+
+//        Button b = (Button) rootView.findViewById(R.id.mapFragmentExpandButton);
+//        b.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                filter.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 300));
+//            }
+//        });
+        removeErrorCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                clearMap();
+
+                String query = buildQuery(
+                        datePicker.getDatePicker().getYear(),
+                        datePicker.getDatePicker().getMonth(),
+                        datePicker.getDatePicker().getDayOfMonth());
+                Cursor c = dbController.rawQuery(query, null);
+                if(c.getCount() > 0) {
+                    currentSpeedPath = analyzer.computeSpeedPath(c, 10, isChecked, 200);
+                    drawPath(currentSpeedPath, true);
+                    setUpSpeedLegenda(currentSpeedPath);
+                } else {
+                    //TODO: display no data msg
+                }
+
+                activitiesCheckbox.setEnabled(isChecked);
+            }
+        });
+
+        activitiesCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                clearMap();
+
+                if(isChecked) {
+                    drawPath(currentSpeedPath, false);
+                    setUpActivityLegenda(currentSpeedPath);
+                } else {
+                    String query = buildQuery(
+                            datePicker.getDatePicker().getYear(),
+                            datePicker.getDatePicker().getMonth(),
+                            datePicker.getDatePicker().getDayOfMonth());
+                    Cursor c = dbController.rawQuery(query, null);
+                    if(c.getCount() > 0) {
+                        currentSpeedPath = analyzer.computeSpeedPath(c, 10, true, 200);
+                        drawPath(currentSpeedPath, true);
+                        setUpSpeedLegenda(currentSpeedPath);
+                    } else {
+                        //TODO: display no data msg
+                    }
+                }
+
             }
         });
 
@@ -237,20 +325,35 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
         return rootView;
     }
 
-    private void setUpLegenda(LinearLayout legenda) {
+    private void setUpSpeedLegenda(SpeedPath sp) {
         LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        legenda.removeAllViews();
         for(int i = 0; i < 5; i++) {
             LinearLayout item = (LinearLayout) inflater.inflate(R.layout.legenda_item, null);
             ImageView image = (ImageView) item.findViewById(R.id.legendaItemColor);
             Drawable d = ContextCompat.getDrawable(getActivity(), R.drawable.legenda_square);
-//            d.setColorFilter(computeColor(i*50), PorterDuff.Mode.SRC_IN);
-            d.setTint(computeColor(i*50));
+            int maxSpeed = (int) sp.getMax();
+            d.setTint(computeSpeedColor(maxSpeed, i*(maxSpeed/5)));
             TextView text = (TextView) item.findViewById(R.id.legendaItemText);
-            text.setText(i*50 + "km/h");
+            text.setText(i*(maxSpeed/5) + " km/h");
             legenda.addView(item);
         }
+//        legenda.setVisibility(View.VISIBLE);
+    }
 
-
+    private void setUpActivityLegenda(SpeedPath sp) {
+        LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        legenda.removeAllViews();
+        for(MoveActivity ac: MoveActivity.values()) {
+            LinearLayout item = (LinearLayout) inflater.inflate(R.layout.legenda_item, null);
+            ImageView image = (ImageView) item.findViewById(R.id.legendaItemColor);
+            Drawable d = ContextCompat.getDrawable(getActivity(), R.drawable.legenda_square);
+            d.setTint(computeActivityColor(ac));
+            TextView text = (TextView) item.findViewById(R.id.legendaItemText);
+            text.setText(ac.toString());
+            legenda.addView(item);
+        }
+//        legenda.setVisibility(View.VISIBLE);
     }
 
     private void clearMap() {
@@ -259,7 +362,6 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
             Marker marker = entry.getValue();
             line.remove();
             marker.remove();
-
         }
         lines.clear();
     }
@@ -268,145 +370,131 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
         for(Map.Entry<Polyline, Marker> entry : lines.entrySet()) {
             Marker marker = entry.getValue();
             marker.setVisible(false);
-
         }
     }
-
 
     @Override
     public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
         clearMap();
+
+        String query = buildQuery(year, month, dayOfMonth);
+        Cursor c = dbController.rawQuery(query, null);
+        if(c.getCount() > 0) {
+            currentSpeedPath = analyzer.computeSpeedPath(c, 10, removeErrorCheckbox.isChecked(), 200);
+            drawPath(currentSpeedPath, true);
+            setUpSpeedLegenda(currentSpeedPath);
+        } else {
+            //TODO: display no data msg
+        }
+        removeErrorCheckbox.setEnabled(true);
+    }
+
+
+
+    private String buildQuery(int year, int month, int dayOfMonth) {
         month++;
         String dateString = Integer.toString(year) + "-" + Integer.toString(month) + "-" + Integer.toString(dayOfMonth);
         date.setText(dateString.toCharArray(), 0, dateString.length());
         DateTimeFormatter dtfOut = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
         DateTime dt = new DateTime(year, month, dayOfMonth, 0, 0, 0);
-        String dayStart = dtfOut.print(dt);
-        long dS = dt.getMillis();
+        long dayStart = dt.getMillis();
         dt = new DateTime(year, month, dayOfMonth, 23, 59, 59);
-        String dayEnd = dtfOut.print(dt);
-        long dE = dt.getMillis();
-        String query = buildQuery(Long.toString(dS), Long.toString(dE));
-        List<LatLng> points = new ArrayList<>();
-        Cursor c = dbController.rawQuery(query, null);
-        if(c.getCount() > 0) {
-            drawSpeedPath(c);
-        }
-
-//        LatLng currPoint = null;
-//        while(c.moveToNext()) {
-//            currPoint = new LatLng(c.getDouble(3), c.getDouble(4));
-//            points.add(currPoint);
-//        }
-//
-//        drawPath(points);
+        long dayEnd = dt.getMillis();
+        return "SELECT * FROM " + LocalSQLiteDBHelper.TABLE_LOCATION +
+                " WHERE " + LocalSQLiteDBHelper.KEY_LOCATION_TIMESTAMP + " BETWEEN " + dayStart + " AND " + dayEnd;
     }
 
-    private void drawSpeedPath(Cursor c) {
-        List<LatLng> currPath = new ArrayList<>();
-        double currSpeed = 0;
-        double tempSpeed = 0;
-        LatLng currPoint;
-        c.moveToNext();
-        LatLng prevPoint = new LatLng(c.getDouble(3), c.getDouble(4));
-        currPath.add(prevPoint);
-        c.moveToNext();
+    private void drawPath(SpeedPath sp, boolean isSpeedPath) {
+        List<Integer> speed = sp.getSpeeds();
+        List<Long> times = sp.getSubPathTimes();
+        List<MoveActivity> activities = sp.getActivitiesPath();
 
-        currPoint = new LatLng(c.getDouble(3), c.getDouble(4));
+        Iterator<List<LatLng>> it = sp.getPath().iterator();
 
-        currSpeed = computeSpeed(prevPoint, currPoint);
+        int i = 0;
+        while(it.hasNext()) {
+            List<LatLng> subPath = it.next();
 
-        while(c.moveToNext()) {
-            prevPoint = currPoint;
-            currPoint = new LatLng(c.getDouble(3), c.getDouble(4));
-            tempSpeed = computeSpeed(prevPoint, currPoint);
-            if(tempSpeed >= currSpeed-10 && tempSpeed <= currSpeed+10) {
-                currPath.add(currPoint);
+            int color;
+            if(isSpeedPath) {
+                color = computeSpeedColor((int) sp.getAvg() + (int) sp.getDeviation(), speed.get(i));
             } else {
-                drawPath(currPath, computeColor(currSpeed), currSpeed);
-                currPath.clear();
-                currPath.add(prevPoint);
-                currPath.add(currPoint);
-                currSpeed = tempSpeed;
+                color = computeActivityColor(activities.get(i));
             }
+            System.out.println(computeActivityColorString(activities.get(i)));
+//            System.out.println(color);
+//            System.out.println(activities.get(i));
+            Polyline line = googleMap.addPolyline(new PolylineOptions()
+                    .addAll(subPath)
+                    .width(12)
+                    .color(color)
+                    .geodesic(true)
+                    .clickable(true)
+            );
+
+            //        BitmapDescriptor transparent = BitmapDescriptorFactory.fromResource(R.drawable.transparent_bitmap);
+
+            String text;
+            String title;
+            if(isSpeedPath) {
+                text = Integer.toString(speed.get(i)) + " km/h " + times.get(i) + " s";
+                title = "Speed and time";
+            } else {
+                text = activities.get(i).toString();
+                title = "Activity";
+            }
+            MarkerOptions markerOptions = new MarkerOptions()
+                    .snippet(text)
+//                .anchor((float) 0.5, (float) 0.5)
+                    .title(title)
+                    .position(new LatLng(0,0));
+
+//                .icon(map);
+            Marker marker = googleMap.addMarker(markerOptions);
+            marker.setVisible(false);
+
+            lines.put(line, marker);
+            i++;
         }
+
     }
 
-    private int computeColor(double speed) {
-        if(speed > 200) {
-            speed = 200;
+    private int computeSpeedColor(int maxSpeed,  int speed) {
+        if(speed > maxSpeed) {
+            speed = maxSpeed;
         }
-        int maxSpeed = 200;
+
         int s = (int) speed;
 
         int maxColor = 255;
 
         int b = Math.abs((s*maxColor)/maxSpeed - maxColor);
         int r = (s*maxColor)/maxSpeed;
-        return Color.parseColor(String.format("#%02x%02x%02x", r, 0, b));
+        return parseColor(String.format("#%02x%02x%02x", r, 0, b));
     }
 
-    /**
-     * Returns speed between two points in m/s
-     * @param start
-     * @param end
-     * @return
-     */
-    private double computeSpeed(LatLng start, LatLng end) {
-        Location l1 = new Location("");
-        l1.setLatitude(start.latitude);
-        l1.setLongitude(start.longitude);
-        Location l2 = new Location("");
-        l2.setLatitude(end.latitude);
-        l2.setLongitude(end.longitude);
-
-        double distance = l1.distanceTo(l2);
-
-        return (distance/1000)*3600;
-    }
-
-    private void drawPath(List<LatLng> points, int color, double speed) {
-        Polyline line = googleMap.addPolyline(new PolylineOptions()
-                .addAll(points)
-                .width(12)
-                .color(color)
-                .geodesic(true)
-                .clickable(true)
-        );
-//        BitmapDescriptor transparent = BitmapDescriptorFactory.fromResource(R.drawable.transparent_bitmap);
-
-        MarkerOptions markerOptions = new MarkerOptions()
-                .snippet(Integer.toString((int) speed) + " km/h")
-//                .anchor((float) 0.5, (float) 0.5)
-                .position(new LatLng(0,0))
-                .title(getActivity(speed));
-//                .icon(map);
-
-        Marker marker = googleMap.addMarker(markerOptions);
-        marker.setVisible(false);
-
-        lines.put(line, marker);
-    }
-
-    private String getActivity(double speed) {
-        if(speed <= 3) {
-            return "Stationary";
-        } else if (speed > 3 && speed <= 9) {
-            return "Walking";
-        } else if (speed > 9 && speed <= 30) {
-            return "Bicyling";
-        } else if (speed > 30 && speed <= 170) {
-            return "Driving";
-        } else {
-            return "Flying";
+    private int computeActivityColor(MoveActivity activity) {
+        System.out.println(activity);
+        switch(activity) {
+            case STATIONARY: return Color.parseColor("#f9ee11");
+            case WALKING: return Color.parseColor("#ffb200");
+            case BICYCLING: return Color.parseColor("#10c400");
+            case DRIVING: return Color.parseColor("#007fc4");
+            case FLYING: return Color.parseColor("#f90000");
+            default: return Color.parseColor("#000000");
         }
     }
 
-    private String buildQuery(String dayStart, String dayEnd) {
-        return "SELECT * FROM " + LocalSQLiteDBHelper.TABLE_LOCATION +
-                " WHERE " + LocalSQLiteDBHelper.KEY_LOCATION_TIMESTAMP + " BETWEEN " + dayStart + " AND " + dayEnd;
+    private String computeActivityColorString(MoveActivity activity) {
+        switch(activity) {
+            case STATIONARY: return "#f9ee11";
+            case WALKING: return "#ffb200";
+            case BICYCLING: return "#10c400";
+            case DRIVING: return "#007fc4";
+            case FLYING: return "#f90000";
+            default: return "#000000";
+        }
     }
-
 
     // TODO: Rename method, update argument and hook method into UI event
     public void onButtonPressed(Uri uri) {

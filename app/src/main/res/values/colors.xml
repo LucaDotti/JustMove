@@ -8,5 +8,6 @@
     <color name="DatePickerBackground">#666666</color>
     <color name="MapDatePickerBackground">#CC4D4D4D</color>
     <color name="white">#FFFFFF</color>
-
+    <color name="red">#FF0000</color>
+    <color name="blue">#0000FF</color>
 </resources>
