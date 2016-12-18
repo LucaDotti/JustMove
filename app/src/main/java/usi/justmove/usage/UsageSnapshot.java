@@ -61,17 +61,7 @@ public class UsageSnapshot {
     }
 
     private void computeCurrentMemoryUsage() {
-        LocalSQLiteDBHelper dbHelper = new LocalSQLiteDBHelper(context);
-        SQLiteDatabase sqliteDb = dbHelper.getReadableDatabase();
-        LocalDbController db = new LocalDbController(context, "JustMove");
-        Cursor c = db.rawQuery("pragma page_count", null);
-        c.moveToNext();
-        int page_count = c.getInt(0);
-        c = db.rawQuery("pragma page_size", null);
-        c.moveToNext();
-        int page_size = c.getInt(0);
-//        memoryUsage = new File(sqliteDb.getPath()).length();
-        memoryUsage = page_count*page_size;
+        memoryUsage = context.getDatabasePath("JustMove").length();
 
     }
 

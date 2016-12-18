@@ -20,6 +20,11 @@ public class LocalSQLiteDBHelper extends SQLiteOpenHelper {
     public static final String TABLE_LOCATION = "location";
     public static final String TABLE_WIFI = "wifi";
     public static final String TABLE_ACCELEROMETER = "accelerometer";
+    public static final String TABLE_CONTROL = "control";
+
+    //
+    public static final String KEY_CONTROL_ID = "id_control";
+    public static final String KEY_CONTROL_CHECK = "check";
 
     //columns names of location table
     public static final String KEY_LOCATION_ID = "id_location";
@@ -77,7 +82,19 @@ public class LocalSQLiteDBHelper extends SQLiteOpenHelper {
                 KEY_ACCELEROMETER_Z + " REAL NOT NULL " +
                 ")";
 
+        String CREATE_CONTROL_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_CONTROL +
+                "(" +
+                KEY_CONTROL_ID + " INTEGER PRIMARY KEY, " +
+                KEY_CONTROL_CHECK + " TEXT NOT NULL " +
+                ")";
+
+        System.out.println("CREATE TABLE IF NOT EXISTS data (id int auto_increment primary key, data_type int default 0, data float not null, time timestamp default current_timestamp)");
+        System.out.println(CREATE_LOCATION_TABLE);
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS data (data_type int)");
+
         db.execSQL(CREATE_LOCATION_TABLE);
+        //db.execSQL(CREATE_CONTROL_TABLE);
 //        db.execSQL(CREATE_WIFI_TABLE);
 //        db.execSQL(CREATE_ACCELEROMETER_TABLE);
     }

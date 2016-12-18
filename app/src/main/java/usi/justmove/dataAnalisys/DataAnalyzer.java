@@ -6,9 +6,7 @@ import android.location.Location;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import usi.justmove.utils.Pair;
 
 /**
  * Created by usi on 11/12/16.
@@ -16,8 +14,8 @@ import usi.justmove.utils.Pair;
 
 public class DataAnalyzer {
 
-    public SpeedPath computeSpeedPath(Cursor records, int speedDiffThreshold, boolean cleanErrors, int speedDiffErrorTreshold) {
-        SpeedPath sp = new SpeedPath();
+    public Trace computeSpeedPath(Cursor records, int speedDiffThreshold, boolean cleanErrors, int speedDiffErrorTreshold) {
+        Trace sp = new Trace();
         List<LatLng> currPath = new ArrayList<>();
         List<Long> currPathTimes = new ArrayList<>();
 

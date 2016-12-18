@@ -9,6 +9,8 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 
 import com.google.android.gms.maps.model.Polyline;
 
@@ -51,6 +53,21 @@ public class MainActivity extends AppCompatActivity implements HomeFragment.OnFr
         }
 //        getApplication().deleteDatabase("JustMove");
         startService(new Intent(this, LocationDataService.class));
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if(id == R.id.toolBarOptionsEraseDB) {
+            getApplication().deleteDatabase("JustMove");
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override

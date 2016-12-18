@@ -28,10 +28,11 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Total distance: "
+            android:text="Today's activities"
             android:textColor="#ffffff"
             android:textAppearance="@style/TextAppearance.AppCompat.Large"
             android:textSize="25dp"
+            android:gravity="center"
             android:layout_marginTop="150dp"
             android:layout_marginLeft="30dp"/>
 

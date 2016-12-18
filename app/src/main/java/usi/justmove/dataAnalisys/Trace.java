@@ -3,17 +3,18 @@ package usi.justmove.dataAnalisys;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import usi.justmove.utils.MoveActivity;
-import usi.justmove.utils.Pair;
+
+import static android.R.transition.move;
 
 /**
  * Created by usi on 11/12/16.
  */
-public class SpeedPath {
+public class Trace {
     private List<List<Long>> times;
     private List<List<LatLng>> path;
     private List<Long> subPathTimes;
@@ -24,10 +25,10 @@ public class SpeedPath {
     private double weightedDeviation;
     private double weightedAvg;
     private int median;
-    private List<Double> weights;
+    private List<Double> timeWeights;
     private List<MoveActivity> activities;
 
-    public SpeedPath() {
+    public Trace() {
         times = new ArrayList<>();
         speeds = new ArrayList<>();
         path = new ArrayList<>();
@@ -35,7 +36,7 @@ public class SpeedPath {
         activities = new ArrayList<>();
         avg = -1;
         deviation = -1;
-        weights = new ArrayList<>();
+        timeWeights = new ArrayList<>();
         weightedDeviation = -1;
         weightedDeviation = -1;
         weightedAvg = -1;
@@ -74,6 +75,46 @@ public class SpeedPath {
         } else {
             return MoveActivity.FLYING;
         }
+    }
+
+    public HashMap<MoveActivity, Float> getActivitiesPercentage() {
+        HashMap<MoveActivity, Float> result = new HashMap<>();
+        List<Long> pathsTimes = getTimeSpanVector();
+        List<MoveActivity> activities = getActivitiesPath();
+        result.put(MoveActivity.WALKING, 0f);
+        result.put(MoveActivity.BICYCLING, 0f);
+        result.put(MoveActivity.DRIVING, 0f);
+        result.put(MoveActivity.FLYING, 0f);
+
+//        int j = 0;
+//        for(MoveActivity a: activities) {
+//            System.out.println("AC " + a);
+//
+//                    j++;
+//        }
+
+        System.out.println("SIZE 1 " + pathsTimes.size());
+        System.out.println("SIZE 2 " + activities.size());
+
+        int i = 0;
+        int totalTime = 0;
+        for(MoveActivity ac: activities) {
+            if(ac != MoveActivity.STATIONARY) {
+                result.put(ac, result.get(activities.get(i)) + pathsTimes.get(i));
+                System.out.println("TIME " + pathsTimes.get(i));
+                totalTime += pathsTimes.get(i);
+
+            }
+            i++;
+        }
+//        System.out.println("TRACW " + totalTime);
+
+        result.put(MoveActivity.WALKING, result.get(MoveActivity.WALKING)/totalTime);
+        result.put(MoveActivity.BICYCLING, result.get(MoveActivity.BICYCLING)/totalTime);
+        result.put(MoveActivity.DRIVING, result.get(MoveActivity.DRIVING)/totalTime);
+        result.put(MoveActivity.FLYING, result.get(MoveActivity.FLYING)/totalTime);
+
+        return result;
     }
 
     public List<Integer> getSpeeds() {
@@ -118,7 +159,7 @@ public class SpeedPath {
             int i = 0;
             normalize(getTimeSpanVector());
             for(Integer speed: speeds) {
-                weightedAvg += speed*weights.get(i);
+                weightedAvg += speed* timeWeights.get(i);
                 i++;
             }
 //            avg = avg/speeds.size();
@@ -134,7 +175,7 @@ public class SpeedPath {
 
             int i = 0;
             for(Integer speed: speeds) {
-                weightedDeviation += Math.pow(((double) speed*weights.get(i)) - wAvg, 2);
+                weightedDeviation += Math.pow(((double) speed* timeWeights.get(i)) - wAvg, 2);
             }
 
 //            deviation = Math.sqrt(deviation/speeds.size());
@@ -154,7 +195,7 @@ public class SpeedPath {
         }
 
         for(Long time: timeSpans) {
-            weights.add(time/len);
+            timeWeights.add(time/len);
         }
     }
 

@@ -5,46 +5,29 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 
 
-import java.text.ParseException;
-import java.util.ArrayList;
-import android.text.format.Time;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.Point;
-import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.ShapeDrawable;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.ShareCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.media.session.IMediaControllerCallback;
-import android.util.Log;
+import android.support.v4.content.res.ResourcesCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.DatePicker;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import java.util.Date;
-import java.text.DateFormat;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -55,9 +38,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.Projection;
-import com.google.android.gms.maps.model.BitmapDescriptor;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -65,29 +45,18 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.android.gms.vision.barcode.Barcode;
-import com.google.android.gms.vision.text.Line;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import usi.justmove.dataAnalisys.DataAnalyzer;
-import usi.justmove.dataAnalisys.SpeedPath;
+import usi.justmove.dataAnalisys.Trace;
 import usi.justmove.database.LocalDbController;
 import usi.justmove.database.LocalSQLiteDBHelper;
 import usi.justmove.utils.MoveActivity;
 
-import static android.R.attr.actionBarItemBackground;
-import static android.R.attr.filter;
-import static android.R.attr.width;
-import static android.R.attr.y;
-import static android.R.color.transparent;
 import static android.graphics.Color.parseColor;
-import static junit.runner.Version.id;
-import static usi.justmove.utils.MoveActivity.BICYCLING;
-import static usi.justmove.utils.MoveActivity.DRIVING;
-import static usi.justmove.utils.MoveActivity.STATIONARY;
 
 //http://stackoverflow.com/questions/19353255/how-to-put-google-maps-v2-on-a-fragment-using-viewpager
 //add possibility to set the current acivity by the user on each line
@@ -124,7 +93,7 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
     private DataAnalyzer analyzer;
     private LocalDbController dbController;
 
-    private SpeedPath currentSpeedPath;
+    private Trace currentSpeedPath;
     private Map<Polyline, Marker> lines;
     private Marker currentVisibleMarker;
     private Polyline currentPolyLine;
@@ -325,7 +294,7 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
         return rootView;
     }
 
-    private void setUpSpeedLegenda(SpeedPath sp) {
+    private void setUpSpeedLegenda(Trace sp) {
         LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         legenda.removeAllViews();
         for(int i = 0; i < 5; i++) {
@@ -336,21 +305,26 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
             d.setTint(computeSpeedColor(maxSpeed, i*(maxSpeed/5)));
             TextView text = (TextView) item.findViewById(R.id.legendaItemText);
             text.setText(i*(maxSpeed/5) + " km/h");
+            image.setImageDrawable(d);
             legenda.addView(item);
         }
 //        legenda.setVisibility(View.VISIBLE);
     }
 
-    private void setUpActivityLegenda(SpeedPath sp) {
+    private void setUpActivityLegenda(Trace sp) {
         LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         legenda.removeAllViews();
+        legenda.invalidate();
         for(MoveActivity ac: MoveActivity.values()) {
             LinearLayout item = (LinearLayout) inflater.inflate(R.layout.legenda_item, null);
             ImageView image = (ImageView) item.findViewById(R.id.legendaItemColor);
+
             Drawable d = ContextCompat.getDrawable(getActivity(), R.drawable.legenda_square);
             d.setTint(computeActivityColor(ac));
+            image.setImageDrawable(d);
             TextView text = (TextView) item.findViewById(R.id.legendaItemText);
-            text.setText(ac.toString());
+            text.setText(ac.toString().toLowerCase());
+
             legenda.addView(item);
         }
 //        legenda.setVisibility(View.VISIBLE);
@@ -404,7 +378,7 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
                 " WHERE " + LocalSQLiteDBHelper.KEY_LOCATION_TIMESTAMP + " BETWEEN " + dayStart + " AND " + dayEnd;
     }
 
-    private void drawPath(SpeedPath sp, boolean isSpeedPath) {
+    private void drawPath(Trace sp, boolean isSpeedPath) {
         List<Integer> speed = sp.getSpeeds();
         List<Long> times = sp.getSubPathTimes();
         List<MoveActivity> activities = sp.getActivitiesPath();
@@ -417,11 +391,11 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
 
             int color;
             if(isSpeedPath) {
-                color = computeSpeedColor((int) sp.getAvg() + (int) sp.getDeviation(), speed.get(i));
+                color = computeSpeedColor(sp.getMax(), speed.get(i));
             } else {
                 color = computeActivityColor(activities.get(i));
             }
-            System.out.println(computeActivityColorString(activities.get(i)));
+
 //            System.out.println(color);
 //            System.out.println(activities.get(i));
             Polyline line = googleMap.addPolyline(new PolylineOptions()
@@ -476,23 +450,12 @@ public class MapFragment extends Fragment implements DatePickerDialog.OnDateSetL
     private int computeActivityColor(MoveActivity activity) {
         System.out.println(activity);
         switch(activity) {
-            case STATIONARY: return Color.parseColor("#f9ee11");
-            case WALKING: return Color.parseColor("#ffb200");
-            case BICYCLING: return Color.parseColor("#10c400");
-            case DRIVING: return Color.parseColor("#007fc4");
-            case FLYING: return Color.parseColor("#f90000");
+            case STATIONARY: return ResourcesCompat.getColor(getResources(), R.color.activityStationary, null);
+            case WALKING: return ResourcesCompat.getColor(getResources(), R.color.activityWalking, null);
+            case BICYCLING: return ResourcesCompat.getColor(getResources(), R.color.activityBicycling, null);
+            case DRIVING: return ResourcesCompat.getColor(getResources(), R.color.activityDriving, null);
+            case FLYING: return ResourcesCompat.getColor(getResources(), R.color.activityFlying, null);
             default: return Color.parseColor("#000000");
-        }
-    }
-
-    private String computeActivityColorString(MoveActivity activity) {
-        switch(activity) {
-            case STATIONARY: return "#f9ee11";
-            case WALKING: return "#ffb200";
-            case BICYCLING: return "#10c400";
-            case DRIVING: return "#007fc4";
-            case FLYING: return "#f90000";
-            default: return "#000000";
         }
     }
 

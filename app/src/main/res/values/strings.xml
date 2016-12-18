@@ -6,4 +6,5 @@
     <string name="db_name">JustMove</string>
     <string name="start_sampling">08:00:00</string>
     <string name="end_sampling">12:00:00</string>
+    <string name="eula">JustMove Copyright (C) 2016 FilipLuca This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions. THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU. All rights granted under this License are granted for the term of copyright on the Program, and are irrevocable provided the stated conditions are met. You may permanently transfer all of your rights under this EULA, provided the recipient agrees to the terms of this EULA.</string>
 </resources>

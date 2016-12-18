@@ -115,7 +115,7 @@ public class UsageFragment extends Fragment {
             }
         };
 
-        new Thread(new Runnable() {
+        Thread t  = new Thread(new Runnable() {
 
             @Override
             public void run() {
@@ -131,7 +131,10 @@ public class UsageFragment extends Fragment {
 
                 }
             }
-        }).start();
+        });
+
+//        t.start();
+
 
         return rootView;
     }
@@ -247,6 +250,7 @@ public class UsageFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         mListener = null;
+        System.out.println("OUTTTT");
     }
 
     /**
@@ -264,6 +268,7 @@ public class UsageFragment extends Fragment {
         void onFragmentInteraction(Uri uri);
     }
 
+    
 //    class RealTimeUsageData extends AsyncTask<LineChart, Void, Void> {
 //
 //        @Override
